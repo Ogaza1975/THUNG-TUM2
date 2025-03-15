@@ -96,6 +96,7 @@ class _SearchpageState extends State<Searchpage> {
     super.initState();
     filteredItems = [...allItems];
     _fetchUserName();
+    fetchRecentSearches(); // โหลดประวัติการค้นหา
   }
 
   void _filterItems(String query) {
@@ -158,6 +159,64 @@ class _SearchpageState extends State<Searchpage> {
         userName = doc.exists ? doc['userName'] ?? user!.email! : user!.email!;
       });
     }
+  }
+
+  void saveRecentSearch(String searchQuery) async {
+    if (user == null) return;
+
+    if (!recentSearches.contains(searchQuery)) {
+      setState(() {
+        recentSearches.insert(0, searchQuery);
+        if (recentSearches.length > 10) {
+          recentSearches.removeLast();
+        }
+      });
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .update({'recentSearches': recentSearches});
+    }
+  }
+
+  void clearRecentSearches() async {
+    if (user == null) return;
+
+    setState(() {
+      recentSearches.clear();
+    });
+
+    await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
+      'recentSearches': [],
+    });
+  }
+
+  void fetchRecentSearches() async {
+    if (user == null) return;
+
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user!.uid)
+            .get();
+
+    if (doc.exists && doc.data()!.containsKey('recentSearches')) {
+      setState(() {
+        recentSearches = List<String>.from(doc['recentSearches']);
+      });
+    }
+  }
+
+  void removeRecentSearch(int index) async {
+    if (user == null) return;
+
+    setState(() {
+      recentSearches.removeAt(index);
+    });
+
+    await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
+      'recentSearches': recentSearches,
+    });
   }
 
   @override
@@ -312,11 +371,7 @@ class _SearchpageState extends State<Searchpage> {
             children: [
               const Text('ค้นหาล่าสุด', style: TextStyle(color: Colors.white)),
               InkWell(
-                onTap: () {
-                  setState(() {
-                    recentSearches.clear();
-                  });
-                },
+                onTap: clearRecentSearches,
                 child: const Text(
                   'ล้างทั้งหมด',
                   style: TextStyle(color: Colors.blue),
@@ -342,12 +397,8 @@ class _SearchpageState extends State<Searchpage> {
                   backgroundImage: AssetImage(gameItem['image']),
                 ),
                 trailing: IconButton(
-                  icon: const Icon(Icons.close, size: 16),
-                  onPressed: () {
-                    setState(() {
-                      recentSearches.removeAt(index);
-                    });
-                  },
+                  icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                  onPressed: () => removeRecentSearch(index),
                 ),
                 onTap: () {
                   _navigateToPage(context, gameItem);
@@ -369,18 +420,7 @@ class _SearchpageState extends State<Searchpage> {
           leading: CircleAvatar(backgroundImage: AssetImage(item['image'])),
           title: Text(item['title'], style: TextStyle(color: Colors.white)),
           onTap: () {
-            if (!recentSearches.contains(filteredItems[index]['title'])) {
-              //ค่า filteredItems[index] (ไอเท็มที่ถูกกรองจากการค้นหา) ยังไม่มีใน recentSearches
-              setState(() {
-                recentSearches.insert(
-                  0,
-                  filteredItems[index]['title'],
-                ); //เพิ่มค่าใหม่(filteredItems[index])เข้าไป(index 0)ของ recentSearchesเพื่อให้รายการที่เพิ่งค้นหาถูกแสดงเป็นรายการแรก(ล่าสุด)
-                if (recentSearches.length > 10) {
-                  recentSearches.removeLast();
-                }
-              });
-            }
+            saveRecentSearch(filteredItems[index]['title']);
             _navigateToPage(context, item);
           },
         );
