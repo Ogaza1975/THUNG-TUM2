@@ -85,7 +85,16 @@ class _HomePageState extends State<homewordgame> {
                       color: Colors.black,
                       size: 32,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setInt(
+                        'level',
+                        1,
+                      ); // ตั้งค่า savedLevel เป็น 1
+                      setState(() {
+                        savedLevel = 1;
+                      });
+
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(

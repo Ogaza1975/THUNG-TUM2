@@ -11,10 +11,10 @@ import 'package:flutter_application_7/UIappgame/Games/Recentlyadded/citizen.dart
 import 'package:flutter_application_7/UIappgame/Games/Recentlyadded/eldenring.dart';
 import 'package:flutter_application_7/UIappgame/Games/Recentlyadded/notime.dart';
 import 'package:flutter_application_7/UIappgame/Games/Recentlyadded/sixnight.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_7/login/loginPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Mylibrary extends StatefulWidget {
   @override
@@ -75,17 +75,20 @@ class _MylibraryState extends State<Mylibrary> {
   }
 
   Future<void> _loadFavoriteStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (user == null) return;
+
+    final favoriteCollection = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .collection('favorites');
+
+    final snapshot = await favoriteCollection.get();
+
     setState(() {
       _favoriteKeys =
-          favoriteGames.keys
-              .where(
-                (key) =>
-                    prefs.getBool(
-                      'favorite_${key.toLowerCase().replaceAll(" ", "_")}',
-                    ) ??
-                    false,
-              )
+          snapshot.docs
+              .where((doc) => doc['isFavorite'] == true)
+              .map((doc) => doc.id)
               .toList();
     });
   }

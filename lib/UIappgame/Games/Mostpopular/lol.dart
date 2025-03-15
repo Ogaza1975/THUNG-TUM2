@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_7/UIappgame/ProfileEditPage/ProfileEditPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -44,18 +43,38 @@ class _LolState extends State<Lol> {
   }
 
   Future<void> _loadFavoriteStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (user == null) return;
+
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .collection('favorites')
+        .doc('League of Legends'); // ใช้ชื่อเกมเป็นไอดีเอกสาร
+
+    final doc = await docRef.get();
     setState(() {
-      _isFavorite = prefs.getBool('favorite_league_of_legends') ?? false;
+      _isFavorite = doc.exists ? doc['isFavorite'] ?? false : false;
     });
   }
 
   Future<void> _toggleFavorite() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (user == null) return;
+
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .collection('favorites')
+        .doc('League of Legends');
+
     setState(() {
       _isFavorite = !_isFavorite;
-      prefs.setBool('favorite_league_of_legends', _isFavorite);
     });
+
+    if (_isFavorite) {
+      await docRef.set({'isFavorite': true});
+    } else {
+      await docRef.delete();
+    }
   }
 
   @override
