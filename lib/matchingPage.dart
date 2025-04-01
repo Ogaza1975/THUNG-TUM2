@@ -154,6 +154,7 @@ class homematching extends StatelessWidget {
   }
 
   void _startGame(BuildContext context, int level) {
+    //คำสั่งให้เริ่มเกมตามlevel ที่กำหนด
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => MemoryGame(level: level)),
@@ -190,6 +191,7 @@ class _MemoryGameState extends State<MemoryGame> {
   }
 
   void _setupLevel() {
+    //กำขนาดของแต่ละด่าน
     switch (widget.level) {
       case 1:
         rows = 3;
@@ -237,7 +239,7 @@ class _MemoryGameState extends State<MemoryGame> {
   }
 
   void onCardTap(int index) {
-    if (!canTap || revealed[index]) return;
+    if (!canTap || revealed[index] || firstIndex == index) return;
 
     setState(() {
       if (firstIndex == null) {
